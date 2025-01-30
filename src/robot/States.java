@@ -11,8 +11,7 @@ public class States {
 	private static final int distanceStep = 150;
 	private static int Map[][][];
 	
-	
-	 static int energy, energyEnm, heading, bearing, distance;
+	static int energy, energyEnm, heading, bearing, distance;
 	double enemyX, enemyY, scantime;
 	static int gunHeat;
 	
@@ -71,14 +70,11 @@ public class States {
 	
 	int myGetHeading(double heading)
 	{
-		//return 2;
-		//System.out.println(heading);
 		return (int) (heading / 90);
 	}
 
 	public int myGetBearing(double bearing) 
 	{
-		//return 2;
 		return (int) ((bearing+180) / 90);
 	}
 
@@ -99,15 +95,5 @@ public class States {
 	{
 		return Map[energy][distance][gunHeat];
 	}
-	
-	public int[] getCurrentStateNN()
-	{
-		int temp[] = new int[3];
-		temp[0] = energy;
-		temp[1] = distance;
-		temp[2] = gunHeat;
-		return temp;
-	}
-	
 	
 }

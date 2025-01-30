@@ -32,11 +32,9 @@ import robocode.util.Utils;
 //import robocode.
 
 
-
 public class QBot extends AdvancedRobot {
 
 	
-	private static final int PI = 180;
 	static States States = new States();
 	static Q Q = new Q();
 	int reward = 0;
@@ -44,9 +42,7 @@ public class QBot extends AdvancedRobot {
 	double scantime=0;
 	static int run=0;
 	
-	static int state1=0, state2=0, action1=0, state3=0, action2=0, action3=0;
-	static int[] state1NN, state2NN;
-	static int reward1=0, reward2=0, reward3=0;
+	static int state1=0, state2=0, action1=0;
 	static boolean firstrun = true;
 	double startTime=0, endTime=0;
 	static int roundCount = 0;
@@ -54,7 +50,6 @@ public class QBot extends AdvancedRobot {
 	static int turnsReached[] = new int[5000];
 	
 	private byte moveDirection = 1;
-	private int wallMargin = 60;
 	
 	static int roundCountTotal =0;
 	static int winsCount = 0;
@@ -62,9 +57,6 @@ public class QBot extends AdvancedRobot {
 	static int totalcountQ3=0;
 	public void run() {
 	
-		
-		//System.out.println(NeuralNet.numActions);
-
 			if(roundCountTotal >= 50)
 			{
 				winsRate.add(winsCount*2);
@@ -72,8 +64,6 @@ public class QBot extends AdvancedRobot {
 				winsCount = 0;
 			}
 			roundCountTotal++;
-
-			
 			
 		epsilon = 0.1;
 		
@@ -84,10 +74,6 @@ public class QBot extends AdvancedRobot {
 		while (true) {
 			doMove();
 			learn();
-			
-
-
-			
 		}
 	}
 
@@ -98,7 +84,7 @@ public class QBot extends AdvancedRobot {
 				break;
 			case 1:	 fire(variable);
 				break;
-			case 2:  avoid2();
+			case 2:  avoid();
 				break;
 			case 3:	runAway();
 				break;
@@ -107,7 +93,7 @@ public class QBot extends AdvancedRobot {
 	}
 
 
-	public void avoid2()
+	public void avoid()
 	{
 		// switch directions if we've stopped
 		if (getVelocity() == 0)
@@ -158,68 +144,39 @@ public class QBot extends AdvancedRobot {
       scantime = getTime();
       
 		//Update Variables
-		States.update(getEnergy(),		//positive energy is good (my energy is bigger)
+		States.update(getEnergy(),
 					e.getDistance(),
 					getGunHeat(),
 					0,
 					0);
 		
-//		if(getEnergy() > 40)
-//		{
-//			if (getGunHeat() == 0 && Math.abs(getGunTurnRemaining()) < 10)
-//				setFire(Math.min(400 / e.getDistance(), 3));
-//		}
-		
 		double firePower = Math.min(400 / e.getDistance(), 3);
 	    //  calculate gun turn toward enemy
 	    double turn = getHeading() - getGunHeading() + e.getBearing();
-//	     normalize the turn to take the shortest path there
+	    // normalise the turn to take the shortest path there
 	    setTurnGunRight(normalizeBearing(turn));
-	    
-	    //Squaring Off
-	    //setTurnRight(e.getBearing() + 90);
-
-	    
-	    
 	    
 	    //QLEARNING
 	    if(firstrun)
 		{
-			//record initial state as state1
-			//Update Variables
-
-			state1 = States.getCurrentState();
-			state1NN = States.getCurrentStateNN();
-			
-			
 //			take a random action
-			action1 = Q.actionOfMaxQ(state1);		//which is basically the first action.
-//			executeAction(action1);
-			
 			Random randomGenerator = new Random();
 			action1 = randomGenerator.nextInt(States.numActions - 1);
 			executeAction(action1, firePower);
-			
 			firstrun = false;
 		}else{
 			learn();
 			
-			
 			int tempState = States.getCurrentState();
-			int[] tempStateNN = States.getCurrentStateNN();
 			if(tempState != state2)
 			{
 				
 				//state2 is the CURRENT State. state1 is the previous
-				
 				//Q LEARNING
 				state2 = tempState;
-				state2NN = tempStateNN;
-				Q.QLearning(state1, action1, state2, reward);									//How can we update NN
-//				NeuralNet.trainNN(state1NN, action1, state2NN, reward);
+				Q.QLearning(state1, action1, state2, reward);
 				//store current state as state1
 				state1 = state2;
-				state1NN = state2NN;
 				//reset reward
 				reward = 0;
 				
@@ -227,11 +184,7 @@ public class QBot extends AdvancedRobot {
 				//take action
 				if(Math.random() > epsilon )
 				{
-					action1 = Q.actionOfMaxQ(state1);											//Get it from NN
-					
-					//int tempStateNN[] = States.getCurrentStateNN();				//returns vector of Energy, Distance, and GunHeat
-//					action1 = NeuralNet.actionOfMaxQNN(tempStateNN);
-					
+					action1 = Q.actionOfMaxQ(state1);
 					executeAction(action1, firePower);
 				}else{
 				    Random randomGenerator = new Random();
@@ -244,52 +197,31 @@ public class QBot extends AdvancedRobot {
 				reward += -3;
 		
 			executeAction(action1, firePower);
-
 			}
 		
 		setTurnRadarLeftRadians(getRadarTurnRemainingRadians());
 	}
 
 
-	//public void onHitByBullet(HitByBulletEvent e) {
-	//	turnLeft(90 - e.getBearing());
-	//}
-	
 	public void doMove() {
 
 		// always square off against our enemy
 		setTurnRight(States.bearing + 90);
 
-		// strafe by changing direction every 20 ticks
+		// penalty at changing position every 20 ticks
 		if (getTime() % 20 == 0) {
 			moveDirection *= -1;
 			setAhead(100 * moveDirection);
 		}
-		
-		
-		//setAhead(100 * moveDirection);
-		
-//		setAhead(100);
 	}
 	
 	public void doMoveOpposite() {
 
-		// always square off against our enemy
+		// always run away from enemy
 		setTurnRight(States.bearing + 90);
-
-//		// strafe by changing direction every 20 ticks
-//		if (getTime() % 20 == 0) {
-//			moveDirection *= -1;
-//			setAhead(150 * moveDirection);
-//		}
-		
-		
-		//setAhead(100 * moveDirection);
 		
 		setAhead(-100);
 	}
-	
-	
 	
 	public void getCloser()
 	{
@@ -299,11 +231,11 @@ public class QBot extends AdvancedRobot {
 	  public void onWin(WinEvent event)
 	  {
 		reward += 10;
-		//learn();
-		//saveData();
+		learn();
+		saveData();
 		
 		winsCount++;
-//		time[roundCount++] = getTime();
+		time[roundCount++] = getTime();
 	  }
 	
 	  public void onDeath(DeathEvent event)
@@ -311,16 +243,13 @@ public class QBot extends AdvancedRobot {
 		reward += -10;
 		learn();
 		saveData();
-		
 		time[roundCount++] = getTime();
-		
 	  }
 		
 	  public void onBulletHit(BulletHitEvent e)
 	  {
 
 	     double change = e.getBullet().getPower() * 3 ;
-	      //out.println("Bullet Hit: " + change);
 	     reward = reward + (int)change;;
 	     learn();
 	  }
@@ -342,7 +271,6 @@ public class QBot extends AdvancedRobot {
 	  public void onBulletMissed(BulletMissedEvent e)
 	  {
 	    double change = -e.getBullet().getPower();
-	    //out.println("Bullet Missed: " + change);
 	    reward += (int)change;
 	    
 	    learn();
@@ -363,7 +291,8 @@ public class QBot extends AdvancedRobot {
 	  public void onHitWall(HitWallEvent e)
 	  {
 	       reward += -3;
-	       moveDirection *= -1; 
+	       moveDirection *= -1;
+	       ahead(100);
 	       learn();
 	  }
 	  
@@ -388,6 +317,7 @@ public class QBot extends AdvancedRobot {
 	    }
 	    catch (Exception e)
 	    {
+	    	out.println("Exception trying to load: " + e);
 	    }
 	  }
 	
@@ -475,7 +405,7 @@ public class QBot extends AdvancedRobot {
 		  		//turns - the number of turns that this round reached.
 		  		turnsReached[e.getRound()] = e.getTurns();
 		  		roundCount = e.getRound();
-		  		//saveDataTurns();
+		  		saveDataTurns();
               }
 	  
 	  public void onBattleEnded(BattleEndedEvent e) {
@@ -484,8 +414,5 @@ public class QBot extends AdvancedRobot {
 	       saveDataTurns();
 	   }
 
-	  
-	  
-	  
 }												
 

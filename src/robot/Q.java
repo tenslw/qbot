@@ -80,16 +80,6 @@ public class Q {
 		setQ(state1, action1, updatedQ);
 	}
 	
-	void SARSA (int state1, int action1, int state2, int action2, int reward)
-	{
-		double Q1 		= getQ(state1, action1);
-		double Q2	 	= getQ(state2, action2);
-		
-		double updatedQ = Q1 + ALPHA * (reward + GAMMA * Q2 - Q1);
-		setQ(state1, action1, updatedQ);
-	}
-
-
   public void loadData(File file)
   {
     BufferedReader r = null;
